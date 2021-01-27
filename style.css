@@ -1,0 +1,17 @@
+#container {
+  margin: auto;
+  position: relative;
+  top: 190px;
+  left: 30px;
+  width: 320px;
+  height: 320px;
+}
+
+td {
+  position: relative;
+  border: 2px solid black;
+  height: 100px;
+  width: 100px;
+  cursor: pointer;
+  text-align: center;
+}
