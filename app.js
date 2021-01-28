@@ -1,21 +1,14 @@
+// Data Tier
 let table, nonTakenSquares, humanTurn, machineTurn, gameOver;
 
 // Getters / setters
 var getContainer = () => document.getElementById('container');
 var getSquares = () => Array.from(document.getElementsByTagName('td'));
+var getSquare = (id) => document.getElementById(`sqr${id}`);
 var getWinText = () => document.getElementById('winText');
 var disableSquare = (square) => square.style['pointer-events'] = 'none';
 var enableSquare = (square) => square.style['pointer-events'] = 'auto';
 var getId = (square) => square.id.split('sqr')[1];
-var getPlayer = (player) => player.innerText;
-
-var setUpTable = () => {
-  table = {};
-  nonTakenSquares = {};
-  humanTurn = true;
-  machineTurn = false;
-  gameOver = false;
-};
 
 var disableClick = (cb) => document.getElementById('matrix').style['pointer-events'] = 'none';
 var enableClick = () => document.getElementById('matrix').style['pointer-events'] = 'auto';
@@ -24,22 +17,31 @@ var refreshButton = () => document.getElementById('refresh');
 var isTight = () => Object.keys(nonTakenSquares).length === 0;
 var startGame = () => initializeTable();
 
+// Data storage set up
+var initializeDataStorage = () => {
+  table = {};
+  nonTakenSquares = {};
+  humanTurn = true;
+  machineTurn = false;
+  gameOver = false;
+};
+
+// Resetter
 var resetGame = () => {
   getSquares().forEach((square) => {
       square.innerText = '';
       enableSquare(square);
       square.removeAttribute('style');
   });
-
-  setUpTable();
+  initializeDataStorage();
   getWinText().remove();
   enableClick();
   initializeTable();
 };
 
-// Set up table and event listeners
+// Initialize data tier and add event listeners to view
 var initializeTable = () => {
-  setUpTable();
+  initializeDataStorage();
 
   getSquares().forEach((square) => {
     square.addEventListener(('click'), clickHandler);
@@ -50,69 +52,60 @@ var initializeTable = () => {
   refreshButton().addEventListener(('click'), (e) => {
     if (gameOver) { resetGame(); }
   });
-
 };
 
-// Controller
+// Connect event listener to controller
 var clickHandler = (e) => handleClick(e);
 
-
-// Model
-var handleClick = (e) => {
-  placeMove(e.target);
-
-  let clickedId = getId(e.target);
-  let player = getPlayer(e.target);
-
-  disableSquare(e.target);
-  updateTable(clickedId, player);
-  checkWinner(player);
-};
-
-// View
-var placeMove = (square) => square.innerText = 'X';
-
-
-// Start
+// Start Of Program
 startGame();
 
 
-// Helpers
+// Controller
+var handleClick = (e) => {
+  renderMove(e.target, 'X');
+  updateModel(getId(e.target), 'X');
+};
+
+// View
+var renderMove = (square, player) => {
+  square.innerText = player;
+  disableSquare(square);
+}
+
+// Model
+var updateModel = (id, player) => {
+  updateTable(id, player);
+
+  hasWon(player, (winner) => {
+    return !winner ? showWinner() : showWinner(winner);
+  }, (otherwise) => switchTurn());
+};
+
+// Logic Tier
 var updateTable = (id, player) => {
   table[id] = player;
   delete nonTakenSquares[id];
 };
 
-var checkWinner = (player) => {
+var hasWon = (player, winCB, next) => {
   if (hasDiagWin(player) || hasColWin(player) || hasRowWin(player)) {
-    gameOver = true;
-    showWinner(player);
-    disableClick();
-
-  } else if (isTight()) {
-    gameOver = true;
-    showWinner();
-    disableClick();
-
-  } else { switchTurn(); }
+    return winCB(player);
+  }
+  return isTight() ? winCB() : next();
 };
 
-var hasDiagWin = (player) => checkWinDirection(player, 'diag');
-var hasColWin = (player) => checkWinDirection(player, 'col');
-var hasRowWin = (player) => checkWinDirection(player, 'row');
-
-
-var checkWinDirection = (player, direction) => {
-  return getPossibleWins(direction, (poss1, poss2, poss3) => {
-    return hasWin(player, poss1, poss2, poss3);
-  });
+var showWinner = (player) => {
+  gameOver = true;
+  let winMessage = player ? getWinMessage(player) : getWinMessage();
+  getContainer().append(winMessage);
+  disableClick();
 };
 
 var switchTurn = () => {
   if (currentTurn() === 'human') {
     humanTurn = false;
     machineTurn = true;
-    disableClick();
     generateMove();
 
   } else if (currentTurn() === 'machine') {
@@ -122,24 +115,28 @@ var switchTurn = () => {
   }
 }
 
-var generateMove = (cb) => {
+var hasDiagWin = (player) => checkWinDirection(player, 'diag');
+var hasColWin = (player) => checkWinDirection(player, 'col');
+var hasRowWin = (player) => checkWinDirection(player, 'row');
+
+var checkWinDirection = (player, direction) => {
+  return getPossibleWins(direction, (poss1, poss2, poss3) => {
+    return hasWin(player, poss1, poss2, poss3);
+  });
+};
+
+var generateMove = () => {
   let randomInt = Math.floor(Math.random() * (Object.keys(nonTakenSquares).length - 1) + 0);
   let squareId = Object.values(nonTakenSquares)[randomInt];
-  let square = document.getElementById(`sqr${squareId}`);
+  let square = getSquare(squareId);
 
+  disableClick();
   setTimeout(() => {
-    square.innerText = 'O';
-    disableSquare(square);
-    updateTable(squareId, 'O');
-    checkWinner('O');
+    renderMove(square, 'O');
+    updateModel(square, squareId, 'O');
   }, 1000);
 };
 
-
-var showWinner = (player) => {
-  let winMessage = player ? getWinMessage(player) : getWinMessage();
-  getContainer().append(winMessage);
-};
 
 var getWinMessage = (player) => {
   let winMessage = document.createElement('h2');
@@ -151,7 +148,6 @@ var getWinMessage = (player) => {
 
   return winMessage;
 };
-
 
 var getPossibleWins = (dir, cb) => {
   let possibility1, possibility2, possibility3;
@@ -185,13 +181,3 @@ var hasWin = (player, poss1, poss2, poss3) => {
          poss2.size === 1 && poss2.has(player) ||
          poss3.size === 1 && poss3.has(player);
 };
-
-
-
-
-
-
-
-
-
-
