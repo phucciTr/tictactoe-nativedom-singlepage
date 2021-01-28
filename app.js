@@ -1,6 +1,7 @@
 console.log('hello');
 
 const table = {};
+let nonTakenSquares = {};
 let humanTurn = true;
 let machineTurn = false;
 
@@ -10,44 +11,52 @@ var getId = (square) => square.id.split('sqr')[1];
 var getPlayer = (player) => player.innerText;
 
 
-var disableTurn = () => document.getElementById('matrix').style['pointer-events'] = 'none';
-var enableTurn = (cb) => document.getElementById('matrix').style['pointer-events'] = 'auto';
-var toggleTurn = () => enableTurn(disableTurn());
+var disableHumanTurn = () => document.getElementById('matrix').style['pointer-events'] = 'none';
+var enableHumanTurn = (cb) => document.getElementById('matrix').style['pointer-events'] = 'auto';
 var currentTurn = () => humanTurn ? 'human' : 'machine';
 
 
-var switchTurn = () => {
+var switchTurn = (clickedId) => {
 
   if (currentTurn() === 'human') {
     humanTurn = false;
     machineTurn = true;
-    toggleTurn();
-    // disableTurn();
-    // enableTurn();
+    disableHumanTurn();
+    makeMachineMove(clickedId);
 
   } else if (currentTurn() === 'machine') {
     humanTurn = true;
     machineTurn = false;
+    enableHumanTurn();
   }
 }
 
+var makeMachineMove = (clickedId) => {
+  let randomInt = Math.floor(Math.random() * (Object.keys(nonTakenSquares).length - 1) + 0);
+  let squareId = Object.values(nonTakenSquares)[randomInt];
+  let square = document.getElementById(`sqr${squareId}`);
+  square.innerText = 'O';
+
+  disableSquare(square);
+  updateTable(squareId, 'O');
+  checkWinner('O');
+  switchTurn();
+};
+
 
 var checkWinner = (player) => {
-
-  console.log('player = ', player);
 
   if (hasDiagWin(player) || hasColWin(player) || hasRowWin(player)) {
     console.log('WIN');
 
   } else { console.log('NOT YET'); }
 
-
 };
 
 
 var startMachine = () => {
   if (currentTurn() === 'machine') {
-    disableTurn();
+    disableHumanTurn();
     makeMove();
   }
 };
@@ -60,35 +69,33 @@ var hasRowWin = (player) => checkWinDirection(player, 'row');
 
 
 var checkWinDirection = (player, direction) => {
-  return getPossibilit(direction, [], [], [], (poss1, poss2, poss3) => {
+  return getPossibleWins(direction, (poss1, poss2, poss3) => {
     return hasWin(player, poss1, poss2, poss3);
   });
-
 };
 
-var getPossibilit = (dir, placements1, placements2, placements3, cb) => {
+var getPossibleWins = (dir, cb) => {
+  let possibility1, possibility2, possibility3;
+
   if (dir === 'diag') {
-    placements1.push(table[0], table[4], table[8]);
-    placements2.push(table[2], table[4], table[6]);
+    possibility1 = new Set([table[0], table[4], table[8]]);
+    possibility2 = new Set([table[2], table[4], table[6]]);
 
   } else if (dir === 'row') {
-    placements1.push(table[0], table[1], table[2]);
-    placements2.push(table[3], table[4], table[5]);
-    placements3.push(table[6], table[7], table[8]);
+    possibility1 = new Set([table[0], table[1], table[2]]);
+    possibility2 = new Set([table[3], table[4], table[5]]);
+    possibility3 = new Set([table[6], table[7], table[8]]);
 
   } else if (dir === 'col') {
-    placements1.push(table[0], table[3], table[6]);
-    placements2.push(table[1], table[4], table[7]);
-    placements3.push(table[2], table[5], table[8]);
+    possibility1 = new Set([table[0], table[3], table[6]]);
+    possibility2 = new Set([table[1], table[4], table[7]]);
+    possibility3 = new Set([table[2], table[5], table[8]]);
   }
 
-  let possibility1 = new Set(placements1);
-  let possibility2 = new Set(placements2);
-  let possibility3 = (dir === 'diag') ? null : new Set(placements3);
-
+  possibility3 = (dir === 'diag') ? null : possibility3;
   return cb(possibility1, possibility2, possibility3);
-
 };
+
 
 var hasWin = (player, poss1, poss2, poss3) => {
   if (!poss3) {
@@ -101,30 +108,27 @@ var hasWin = (player, poss1, poss2, poss3) => {
 };
 
 
-
-
+var placeMovement = (square) => {
+  square.innerText = 'X';
+};
 
 
 var clickHandler = (e) => {
-  console.log('turn = ', currentTurn());
 
-  e.target.innerText = currentTurn() === 'human' ? 'X' : 'O';
+  placeMovement(e.target);
   disableSquare(e.target);
-  switchTurn();
 
   let clickedId = getId(e.target);
   let player = getPlayer(e.target);
 
   updateTable(clickedId, player);
   checkWinner(player);
-
-  console.log('matrix = ', getSquares());
-  console.log('table = ', table);
-  console.log('');
+  switchTurn(clickedId);
 }
 
 var updateTable = (id, player, callback) => {
   table[id] = player;
+  delete nonTakenSquares[id];
 };
 
 var initializeTable = () => {
@@ -132,6 +136,7 @@ var initializeTable = () => {
     square.addEventListener(('click'), clickHandler);
     let id = getId(square);
     table[id] = null;
+    nonTakenSquares[id] = id;
   });
 
 };
@@ -139,7 +144,6 @@ var initializeTable = () => {
 
 var startGame = () => {
   initializeTable();
-  startMachine();
 };
 
 startGame();
