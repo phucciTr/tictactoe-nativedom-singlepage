@@ -1,19 +1,26 @@
 console.log('hello');
 
-const table = {};
+let table = {};
 let nonTakenSquares = {};
 let humanTurn = true;
 let machineTurn = false;
+let gameOver = false;
 
+var getContainer = () => document.getElementById('container');
 var getSquares = () => Array.from(document.getElementsByTagName('td'));
+var getWinText = () => document.getElementById('winText');
 var disableSquare = (square) => square.style['pointer-events'] = 'none';
+var enableSquare = (square) => square.style['pointer-events'] = 'auto';
 var getId = (square) => square.id.split('sqr')[1];
 var getPlayer = (player) => player.innerText;
 
 
-var disableHumanTurn = () => document.getElementById('matrix').style['pointer-events'] = 'none';
-var enableHumanTurn = (cb) => document.getElementById('matrix').style['pointer-events'] = 'auto';
+var disableClick = () => document.getElementById('matrix').style['pointer-events'] = 'none';
+var enableHumanTurn = () => document.getElementById('matrix').style['pointer-events'] = 'auto';
 var currentTurn = () => humanTurn ? 'human' : 'machine';
+var refreshButton = () => document.getElementById('refresh');
+var isTight = () => Object.keys(nonTakenSquares).length === 0;
+
 
 
 var switchTurn = (clickedId) => {
@@ -21,8 +28,8 @@ var switchTurn = (clickedId) => {
   if (currentTurn() === 'human') {
     humanTurn = false;
     machineTurn = true;
-    disableHumanTurn();
-    makeMachineMove(clickedId);
+    disableClick();
+    generateMove(clickedId);
 
   } else if (currentTurn() === 'machine') {
     humanTurn = true;
@@ -31,7 +38,7 @@ var switchTurn = (clickedId) => {
   }
 }
 
-var makeMachineMove = (clickedId) => {
+var generateMove = (clickedId) => {
   let randomInt = Math.floor(Math.random() * (Object.keys(nonTakenSquares).length - 1) + 0);
   let squareId = Object.values(nonTakenSquares)[randomInt];
   let square = document.getElementById(`sqr${squareId}`);
@@ -40,26 +47,43 @@ var makeMachineMove = (clickedId) => {
   disableSquare(square);
   updateTable(squareId, 'O');
   checkWinner('O');
-  switchTurn();
+};
+
+
+var showWinner = (player) => {
+  let winMessage = player ? getWinMessage(player) : getWinMessage();
+  getContainer().append(winMessage);
+  disableClick();
+};
+
+var getWinMessage = (player) => {
+  let winMessage = document.createElement('h2');
+  winMessage.setAttribute('id', 'winText');
+
+  if (player) {
+    winMessage.innerText = player === 'O' ? 'Machine Wins' : 'Human Wins';
+  } else { winMessage.innerText = 'Tight'; }
+
+  return winMessage;
 };
 
 
 var checkWinner = (player) => {
 
   if (hasDiagWin(player) || hasColWin(player) || hasRowWin(player)) {
-    console.log('WIN');
+    gameOver = true;
+    showWinner(player);
+    disableClick();
 
-  } else { console.log('NOT YET'); }
+  } else if (isTight()) {
+    gameOver = true;
+    showWinner();
+    disableClick();
+
+  } else { switchTurn(); }
 
 };
 
-
-var startMachine = () => {
-  if (currentTurn() === 'machine') {
-    disableHumanTurn();
-    makeMove();
-  }
-};
 
 
 
@@ -108,14 +132,12 @@ var hasWin = (player, poss1, poss2, poss3) => {
 };
 
 
-var placeMovement = (square) => {
-  square.innerText = 'X';
-};
+var placeMove = (square) => square.innerText = 'X';
 
 
 var clickHandler = (e) => {
 
-  placeMovement(e.target);
+  placeMove(e.target);
   disableSquare(e.target);
 
   let clickedId = getId(e.target);
@@ -123,7 +145,6 @@ var clickHandler = (e) => {
 
   updateTable(clickedId, player);
   checkWinner(player);
-  switchTurn(clickedId);
 }
 
 var updateTable = (id, player, callback) => {
@@ -138,13 +159,29 @@ var initializeTable = () => {
     table[id] = null;
     nonTakenSquares[id] = id;
   });
+  refreshButton().addEventListener(('click'), (e) => {
+    if (gameOver) { resetGame(); }
+  });
 
 };
 
-
-var startGame = () => {
+var resetGame = () => {
+  getSquares().forEach((square) => {
+      square.innerText = '';
+      enableSquare(square);
+      square.removeAttribute('style');
+  });
+  table = {};
+  nonTakenSquares = {};
+  gameOver = false;
+  humanTurn = true;
+  machineTurn = false;
+  getWinText().remove();
+  enableHumanTurn();
   initializeTable();
 };
+
+var startGame = () => initializeTable();
 
 startGame();
 

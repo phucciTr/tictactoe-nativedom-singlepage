@@ -15,3 +15,8 @@ td {
   cursor: pointer;
   text-align: center;
 }
+
+#refresh {
+  position: relative;
+  bottom: 100px;
+}
