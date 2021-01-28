@@ -133,7 +133,7 @@ var generateMove = () => {
   disableClick();
   setTimeout(() => {
     renderMove(square, 'O');
-    updateModel(square, squareId, 'O');
+    updateModel(squareId, 'O');
   }, 1000);
 };
 
