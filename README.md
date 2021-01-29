@@ -1,7 +1,7 @@
 # tictactoe-nativedom-singlepage
 Simple tictactoe of human vs bot implemented in a MVC single-page app style using only native DOM methods without any framework or library 
 
-Features:
+Notes:
  - Human cannot click on board while bot is making a move
  - Refresh button can only be activated if the game is over
  - Left-over squares are un-clickable if the game is over
